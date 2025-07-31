@@ -1,11 +1,17 @@
 package NotModified.User.service;
 
-import NotModified.User.domain.User;
+import NotModified.User.domain.Member;
+import NotModified.User.dto.request.SigninRequest;
+import NotModified.User.dto.request.SignupRequest;
+import NotModified.User.dto.response.TokenResponse;
+import NotModified.User.jwt.JwtTokenProvider;
 import NotModified.User.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -13,17 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public User register(String userId, String password, String name, String email) {
-        if(userRepository.findByUserId(userId).isPresent()) {
-            throw new IllegalArgumentException("이미 존재하는 ID입니다.");
-        }
+    public Member join(SignupRequest req) {
+        validateDuplicationUser(req);
+        String encodedPassword = passwordEncoder.encode(req.getPassword());
 
-        User user = User.builder()
-                .userId(userId)
-                .password(password)
-                .name(name)
-                .email(email)
+        Member user = Member.builder()
+                .username(req.getUsername())
+                .password(encodedPassword)
+                .email(req.getEmail())
                 .build();
 
         userRepository.save(user);
@@ -31,13 +36,20 @@ public class UserService {
         return user;
     }
 
-    public User login(String userId, String password) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 ID 입니다."));
-        if(!passwordEncoder.matches(password, user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+    private void validateDuplicationUser(SignupRequest req) {
+        userRepository.findByUsername(req.getUsername())
+                .ifPresent(u -> {
+                    throw new IllegalArgumentException("이미 존재하는 ID 입니다.");
+                });
+    }
+
+    public TokenResponse signin(SigninRequest req) {
+        Optional<Member> userOpt = userRepository.findByUsername(req.getUsername());
+        if(userOpt.isEmpty() || !passwordEncoder.matches(req.getPassword(), userOpt.get().getPassword())) {
+            throw new IllegalArgumentException("아이디 또는 비밀번호가 틀렸습니다.");
         }
 
-        return user;
+        String token = jwtTokenProvider.createToken(userOpt.get().getUsername());
+        return new TokenResponse(token);
     }
 }
