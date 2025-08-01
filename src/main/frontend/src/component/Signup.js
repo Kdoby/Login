@@ -1,29 +1,41 @@
 import './Signup.css';
 
 import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from "axios";
 
 
 export default function Signup() {
+    const navigate = useNavigate();
+
     const [id, setId] = useState('');
     const [pw, setPw] = useState('');
     const [pwConfirm, setPwConfirm] = useState('');
     const [email, setEmail] = useState('');
-    const [idDuplication, setIdDuplication] = useState(false);
+    const doSignup = async () => {
+        // checkID();
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!id) return alert("아이디를 입력하세요.");
-        if (!idDuplication) return alert("아이디 중복체크를 해주세요.");
-        if (!pw) return alert("비밀번호를 입력하세요.");
-        if (!pwConfirm) return alert("비밀번호 확인을 입력하세요.");
-        if (pw !== pwConfirm) return alert("비밀번호가 일치하지 않습니다.");
-        if (!email) return alert("이메일을 입력하세요.");
+        console.log(id, pw, pwConfirm, email);
+        try {
+            const res = await axios.post('/api/auth/signup', {  // '/auth/login' 으로 요청
+                username: id,
+                password: pw,
+                email
+            });
 
-        console.log("회원가입 정보:", { id, pw, email });
+            // JWT 토큰 저장
+            const { accessToken, refreshToken } = res.data;
 
-        // 실제 회원가입 API 요청
-        // fetch("/signup_do", { method: "POST", body: JSON.stringify({ id, pw, email }) })
-        //     .then(res => res.json()).then(data => console.log(data));
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+
+            alert("회원가입 성공");
+            navigate('/login');
+
+        } catch (err) {
+            console.error('에러 발생: ', err);
+            alert("로그인 실패");
+        }
     };
 
     const checkID = () => {
@@ -32,27 +44,68 @@ export default function Signup() {
             return;
         }
 
-        fetch(`/signup_idCheck.jsp?id=${id}`)
-            .then(res => res.text())
-            .then(result => {
-                if (result.trim() === "available") {
-                    alert("사용 가능한 아이디입니다.");
-                    setIdDuplication(true);
-                } else {
-                    alert("이미 존재하는 아이디입니다.");
-                    setIdDuplication(false);
-                }
-            })
-            .catch(err => {
-                console.error("ID 중복 체크 오류:", err);
-            });
+        if(pw !== pwConfirm){
+            alert("비밀번호와 확인 비밀번호가 일치하지 않습니다.");
+            return;
+        }
+
+        if (!email) {
+            alert("이메일을 입력하세요.");
+            return;
+        }
     };
 
     return (
         <div className="login_pg">
             <div className="logbox">
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={() => doSignup()}>
                     <div style={{ width:"100%", margin:"50px 0" }}>
+                        <label htmlFor="id">ID</label>
+                        <br />
+
+                        <input onChange={(e) => setId(e.target.value)}
+                               style={{ height:"40px", width:"100%", border:"2px solid black", borderRadius:"10px", margin:"20px 0"}}
+                        />
+                    </div>
+
+                    <div style={{ width:"100%", margin:"50px 0" }}>
+                        <label htmlFor="pw">PASSWORD</label>
+                        <br />
+
+                        <input onChange={(e) => setPw(e.target.value)}
+                               style={{ height:"40px", width:"100%", border:"2px solid black", borderRadius:"10px", margin:"20px 0"}}
+                        />
+                    </div>
+
+                    <div style={{ width:"100%", margin:"50px 0" }}>
+                        <label htmlFor="pwConfirm">PASSWORD CHECK</label>
+                        <br />
+
+                        <input onChange={(e) => setPwConfirm(e.target.value)}
+                               style={{ height:"40px", width:"100%", border:"2px solid black", borderRadius:"10px", margin:"20px 0"}}
+                        />
+                    </div>
+
+                    <div style={{ width:"100%", margin:"50px 0" }}>
+                        <label htmlFor="email">E-MAIL</label>
+                        <br />
+
+                        <input onChange={(e) => setEmail(e.target.value)}
+                               style={{ height:"40px", width:"100%", border:"2px solid black", borderRadius:"10px", margin:"20px 0"}}
+                        />
+                    </div>
+
+                    <div>
+                        <input type="submit" value="SIGN UP" />
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/*
+<div style={{ width:"100%", margin:"50px 0" }}>
                         <label htmlFor="id">ID</label>
                         <br />
 
@@ -84,8 +137,4 @@ export default function Signup() {
                     <div>
                         <input type="submit" value="SIGN UP" />
                     </div>
-                </form>
-            </div>
-        </div>
-    );
-}
+*/
