@@ -12,8 +12,10 @@ export default function Signup() {
     const [pw, setPw] = useState('');
     const [pwConfirm, setPwConfirm] = useState('');
     const [email, setEmail] = useState('');
+
+
     const doSignup = async () => {
-        // checkID();
+        if( !checkID() ){ return; }
 
         console.log(id, pw, pwConfirm, email);
         try {
@@ -41,24 +43,29 @@ export default function Signup() {
     const checkID = () => {
         if (!id) {
             alert("아이디를 입력하세요.");
-            return;
+            return false;
         }
 
         if(pw !== pwConfirm){
             alert("비밀번호와 확인 비밀번호가 일치하지 않습니다.");
-            return;
+            return false;
         }
 
         if (!email) {
             alert("이메일을 입력하세요.");
-            return;
+            return false;
         }
+
+        return true;
     };
 
     return (
         <div className="login_pg">
             <div className="logbox">
-                <form onSubmit={() => doSignup()}>
+                <form onSubmit={(e) => {
+                    e.preventDefault();
+                    doSignup();
+                }}>
                     <div style={{ width:"100%", margin:"50px 0" }}>
                         <label htmlFor="id">ID</label>
                         <br />
